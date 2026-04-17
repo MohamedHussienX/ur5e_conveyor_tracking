@@ -49,9 +49,23 @@ class ConductorNode(Node):
     def box_callback(self, msg):
         current_time = time.time()
         
+        # --- FIX: Reset trackers if the data is stale (box was lost/fell off) ---
+        if self.last_time is not None and (current_time - self.last_time) > 1.0:
+            self.get_logger().warn("Tracking lost. Resetting velocity data.")
+            self.vx = 0.0
+            self.vy = 0.0
+            self.speed = 0.0
+            self.last_x = msg.x
+            self.last_y = msg.y
+            self.last_time = current_time
+            return
+        # -------------------------------------------------------------------------
+        
         if self.last_time is not None and self.last_x is not None and self.last_y is not None:
             dt = current_time - self.last_time
-            if dt > 0:
+            
+            # --- FIX: Prevent zero-division ---
+            if dt > 0.03:
                 dx = msg.x - self.last_x
                 dy = msg.y - self.last_y
                 
@@ -74,7 +88,8 @@ class ConductorNode(Node):
                 self.is_busy = True 
                 
                 if self.speed > 0.01:
-                    predicted_x = msg.x + (self.vx * 6.0)
+                    # --- FIX: Shortened prediction horizon to 2.5 seconds to avoid wall-slamming ---
+                    predicted_x = msg.x + (self.vx * 2.5)
                     catch_x = max(-0.5, min(0.5, predicted_x))
                     catch_y = msg.y 
                     

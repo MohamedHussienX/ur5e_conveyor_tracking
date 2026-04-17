@@ -90,7 +90,9 @@ class PerceptionNode(Node):
                     current_time = time.time()
                     if self.last_pos is not None and self.last_time is not None:
                         dt = current_time - self.last_time
-                        if dt > 0:
+                        
+                        # --- FIX: Prevent zero-division by requiring a minimum time step ---
+                        if dt > 0.03:
                             raw_velocity = (pos - self.last_pos) / dt
                             self.smoothed_velocity = (self.alpha * raw_velocity) + ((1.0 - self.alpha) * self.smoothed_velocity)
                             
